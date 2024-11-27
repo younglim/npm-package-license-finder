@@ -13,7 +13,7 @@ node license-finder.js package-lock.json some-package-licenses.csv
 Counts of each license is generated.
 ```
 ...
-License information has been written to /Users/some-user/some-path/license-check/some-package-licenses.csv
+License information has been written to /Users/some-user/some-path/npm-package-license-finder/some-package-licenses.csv
 License	Counts:
 ISC	36
 MIT	60
