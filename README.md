@@ -6,7 +6,7 @@ Identifying licenses of dependencies in package-lock file can be hard. License f
 npm install
 # Input package-lock.json to the path of your package-lock file.
 # Output some-package-licenses.csv to list the license details.
-node license-check.js package-lock.json some-package-licenses.csv
+node license-finder.js package-lock.json some-package-licenses.csv
 ```
 
 ## Sample Command-line Output
