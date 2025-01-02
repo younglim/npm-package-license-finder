@@ -77,35 +77,25 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                         const response = await fetch.json(`/${packageName}`);
                         license = response.license || 'UNKNOWN';
                         homepage = response.homepage || homepage;
-
-                        
+                       
                         if (response.homepage) {
-                            try {
-                                const homepageUrl = response.homepage.replace(/#.*$/, '').replace(/\/$/, '');
-                                const githubApiUrl = homepageUrl.replace(/github\.com\//, 'api.github.com/repos/');
-                                const licenseTextUrl = `https://raw.githubusercontent.com/${repository}/refs/heads/main/LICENSE`;
-                                console.log('LicenseText URL:', licenseTextUrl);
-
-                                const githubResponse = await axios.get(`${githubApiUrl}/license`);
-                                console.log(`Querying GitHub API for license information: ${githubApiUrl}/license`);
-                                if (license === 'UNKNOWN' && githubResponse.data && githubResponse.data.license) {
-                                    license = githubResponse.data.license.spdx_id || 'UNKNOWN';
-                                    console.log(`License found on GitHub for ${packageName}: ${license}`);
-                                }
-                                const licenseFileResponse = await axios.get(licenseTextUrl);
-                                if (licenseFileResponse.data && licenseFileResponse.data.content) {
-                                    // GitHub API returns base64 encoded content for files in the 'content' field
-                                    const licenseContent = Buffer.from(licenseFileResponse.data.content, 'base64').toString('utf8');
-                                    licenseText = licenseContent;  // Save the license text
-                                    console.log(`License Text fetched from GitHub for ${packageName}:`);
-                                } else {
-                                    console.error(`License text not found in GitHub repository for ${packageName}`);
-                                }
-                            } catch (githubError) {
-                                if (githubError.response && githubError.response.status === 404) {
-                                    console.error(`GitHub repository not found for ${packageName}: ${githubApiUrl}`);
-                                } else {
-                                    console.error(`Error fetching license from GitHub for ${packageName}:`, githubError.message);
+                            if (license === 'UNKNOWN') {
+                                try {
+                                    const homepageUrl = response.homepage.replace(/#.*$/, '').replace(/\/$/, '');
+                                    const githubApiUrl = homepageUrl.replace(/github\.com\//, 'api.github.com/repos/');
+                                    
+                                    const githubResponse = await axios.get(licenseTextUrl);
+                                    console.log(`Querying GitHub API for license information: ${githubApiUrl}/license`);
+                                    if (license === 'UNKNOWN' && githubResponse.data && githubResponse.data.license) {
+                                        license = githubResponse.data.license.spdx_id || 'UNKNOWN';
+                                        //console.log(`License found on GitHub for ${packageName}: ${license}`);
+                                    }
+                                } catch (githubError) {
+                                    if (githubError.response && githubError.response.status === 404) {
+                                        console.error(`GitHub repository not found for ${packageName}: ${githubApiUrl}`);
+                                    } else {
+                                        console.error(`Error fetching license from GitHub for ${packageName}:`, githubError.message);
+                                    }
                                 }
                             }
                         }
@@ -125,7 +115,7 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                             const tarballPath = path.join(tarballDir, `${sanitizedPackageName}.tgz`);
                             // console.log('-------TarballPath: ',tarballPath);
                             try {
-                                console.log(`Downloading tarball from: ${tarballUrl}`);
+                                //console.log(`Downloading tarball from: ${tarballUrl}`);
                                 const tarballStream = fs.createWriteStream(tarballPath);
                                 try {
                                     const response = await axios({ method: 'get', url: tarballUrl, responseType: 'stream' });
@@ -138,7 +128,7 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                     throw new Error(`Error downloading tarball for ${packageName}: ${downloadError.message}`);
                                 }
 
-                                console.log(`Extracting tarball for package: ${packageName} to ${tarballDir}`);
+                                //console.log(`Extracting tarball for package: ${packageName} to ${tarballDir}`);
                                 await tar.extract({
                                     file: tarballPath,
                                     cwd: tarballDir,
@@ -151,24 +141,24 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                     // Extract license information
                                     if (packageJsonData.license) {
                                         license = packageJsonData.license;
-                                        console.log(`License found in package.json for ${packageName}: ${license}`);
+                                        //console.log(`License found in package.json for ${packageName}: ${license}`);
                                     } else if (packageJsonData.licenses && Array.isArray(packageJsonData.licenses)) {
                                         license = packageJsonData.licenses.map(lic => lic.type).join(',');
-                                        console.log(`Licenses found in package.json for ${packageName}: ${license}`);
+                                       //console.log(`Licenses found in package.json for ${packageName}: ${license}`);
                                     }
                                      // Extract homepage information
                                     if (packageJsonData.homepage) {
                                         homepage = packageJsonData.homepage;
-                                        console.log(`Homepage found in package.json for ${packageName}: ${homepage}`);
+                                        //console.log(`Homepage found in package.json for ${packageName}: ${homepage}`);
                                     }
 
                                     // Extract author information
                                     if (packageJsonData.author) {
                                         author = packageJsonData.author.name || packageJsonData.author;
-                                        console.log(`Author found in package.json under Author for ${packageName}: ${author}`);
+                                        //console.log(`Author found in package.json under Author for ${packageName}: ${author}`);
                                     }else if (packageData._npmUser.name){
                                         author = packageData._npmUser.name;
-                                        console.log(`Author found in package.json under _npmUser for ${packageName}: ${author}`);
+                                        //console.log(`Author found in package.json under _npmUser for ${packageName}: ${author}`);
                                     }
                                 }
 
@@ -186,8 +176,18 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                 }                         
                             }
                         }
+                        if (homepage.includes("https://github.com")) {
+                            const gitDIR = homepage.replace('https://github.com', '').replace('#readme', '');
+                            const licenseTextUrl = `https://raw.githubusercontent.com/${gitDIR}/refs/heads/main/LICENSE`;                              
+                            try {// The getting raw content of the LICENSE file
+                                const licenseFileResponse = await axios.get(licenseTextUrl);
+                                licenseText = licenseFileResponse.data;  
+                                console.log(`--------License Text fetched from GitHub for ${licenseText}:`);
+                            } catch (error) {
+                                console.error(`------Error fetching license text from GitHub from ${licenseTextUrl}:`, error.message);
+                            }
+                        }
 
-                        
                     } catch (apiError) {
                         if (apiError.statusCode === 404) {
                             console.log(`Package not found on npm registry: ${packageName}`);
