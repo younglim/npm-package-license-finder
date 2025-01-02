@@ -22,6 +22,17 @@ BSD-2-Clause	1
 BSD-3-Clause	1
 ```
 
+## How to run license-formatting.js
+
+```
+# Input generated-licenses.csv to the path of your generated license csv from running license-finder.js
+# genera-terms is a list of terms of licenses used in place when license info is not available from license-finder.js
+# Output licenses-output.txt to list the license details
+
+node license-formatting.js generated-licenses.csv general-terms.csv licenses-output.txt
+
+```
+
 ## Sample Output CSV File
 ```
 Dependency,License,Homepage,Tarball URL
