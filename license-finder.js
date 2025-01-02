@@ -182,9 +182,9 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                             try {// The getting raw content of the LICENSE file
                                 const licenseFileResponse = await axios.get(licenseTextUrl);
                                 licenseText = licenseFileResponse.data;  
-                                console.log(`--------License Text fetched from GitHub for ${licenseText}:`);
+                                //console.log(`--------License Text fetched from GitHub for ${gitDIR}:`);
                             } catch (error) {
-                                console.error(`------Error fetching license text from GitHub from ${licenseTextUrl}:`, error.message);
+                                //console.error(`------Error fetching license text from GitHub from ${licenseTextUrl}:`, error.message);
                             }
                         }
 
