@@ -10,6 +10,7 @@ import https from 'https';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import zlib from 'zlib';
+import { getPackageHomepage } from "./homepage_scraper.js";
 
 const pipelineAsync = promisify(pipeline);
 
@@ -53,23 +54,34 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
         // Add the root package information
         if (dependencies[""] && dependencies[""].name && dependencies[""].license) {
             const license = dependencies[""].license;
-            records.push({ dependency: dependencies[""].name, license, homepage: 'No homepage available', tarballUrl: 'No tarball link available' });
+            records.push({ dependency: dependencies[""].name, license, homepage: 'No homepage available', tarballUrl: 'No tarball link available', contributor: 'No contributor available' });
             licenseCounts[license] = (licenseCounts[license] || 0) + 1;
         }
 
         for (const [name, details] of Object.entries(dependencies)) {
             if (name !== "" && details && typeof details === 'object') {
+                let cleanName = name;
                 let license = details.license || 'UNKNOWN';
                 let homepage = details.homepage || 'No homepage available';
                 let tarballUrl = details.resolved || 'No tarball link available';
+                let contributor = details.contributor || 'No contributor available';
 
                 if (license === 'UNKNOWN') {
-                    const packageName = name.replace('node_modules/', '').split('/').pop();
+                    const packageName = name.split('node_modules/').length === 2
+                    ? name.split('node_modules/')[1]
+                    : name.replace('node_modules/', '').split('/').pop();
+                    cleanName = packageName;
+                
                     try {
                         console.log(`Querying npm registry for package: ${packageName}`);
                         const response = await fetch.json(`/${packageName}`);
                         license = response.license || 'UNKNOWN';
                         homepage = response.homepage || homepage;
+
+                        // If homepage is missing, scrap it from the npm webpage
+                        if (homepage === 'No homepage available') {
+                            homepage = await getPackageHomepage(packageName);
+                        }
 
                         if (license === 'UNKNOWN' && response.homepage) {
                             const homepageUrl = response.homepage.replace(/#.*$/, '').replace(/\/$/, '');
@@ -141,6 +153,35 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                 console.error(`Error downloading or extracting tarball for ${packageName}:`, tarballError.message);
                             }
                         }
+
+                        if (license === 'UNKNOWN' && details.contributor) {
+                                try {
+                                    // Fetch package metadata from npm registry
+                                    const npmApiUrl = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`;
+                                    const npmResponse = await axios.get(npmApiUrl);
+                                    const repositoryUrl = npmResponse.data.repository?.url;  // GitHub URL (e.g., https://github.com/{user}/{repo})
+                            
+                                    if (repositoryUrl && repositoryUrl.includes('github.com')) {
+                                        // Extract the GitHub repo path (user/repo) from the URL
+                                        const repoPath = repositoryUrl.replace('git+https://github.com/', '').replace('.git', '');
+                                        const githubApiUrl = `https://api.github.com/repos/${repoPath}/contributors`;
+                            
+                                        // Fetch contributors from the GitHub API
+                                        const githubResponse = await axios.get(githubApiUrl);
+                                        const contributors = githubResponse.data.map(contributor => contributor.login);
+
+                                        contributor = contributors.join(', ');
+                                        console.log(`Contributors found for ${packageName}:`, contributors);
+                                    } else {
+                                        console.log(`No GitHub repository found for ${packageName}`);
+                                        return 'No contributors available';
+                                    }
+                                } catch (error) {
+                                    console.error(`Error fetching contributors for ${packageName}:`, error.message);
+                                    return 'No contributors available';
+                                }
+
+                        }
                     } catch (apiError) {
                         if (apiError.statusCode === 404) {
                             console.log(`Package not found on npm registry: ${packageName}`);
@@ -151,11 +192,11 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                     }
                 }
 
-                records.push({ dependency: name, license, homepage, tarballUrl });
+                records.push({ dependency: cleanName, license, homepage, tarballUrl, contributor });
                 licenseCounts[license] = (licenseCounts[license] || 0) + 1;
 
                 if (license === 'UNKNOWN') {
-                    unknownLicenses.push({ name, homepage, tarballUrl });
+                    unknownLicenses.push({ cleanName, homepage, tarballUrl, contributor });
                 }
             }
         }
@@ -168,6 +209,7 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                 { id: 'license', title: 'License' },
                 { id: 'homepage', title: 'Homepage' },
                 { id: 'tarballUrl', title: 'Tarball URL' },
+                {id: 'contributor', title: 'Contributor' },
             ],
         });
 
@@ -178,14 +220,17 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
 
                 // Output license counts
                 console.log('License\tCounts:');
+                let totalLicense = 0;
                 for (const [license, count] of Object.entries(licenseCounts)) {
                     console.log(`${license}\t${count}`);
+                    totalLicense += count;
                 }
+                console.log(`Total License: ${totalLicense}`);
 
                 // Output unknown licenses with module names, homepage, and tarball link
                 if (unknownLicenses.length > 0) {
                     console.log('\nModules with UNKNOWN licenses:');
-                    unknownLicenses.forEach(({ name, homepage, tarballUrl }) => {
+                    unknownLicenses.forEach(({ name, homepage, tarballUrl, contributor }) => {
                         console.log(`${name}\tHomepage: ${homepage}\tTarball: ${tarballUrl}`);
                     });
                 }
