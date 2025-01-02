@@ -32,7 +32,7 @@ function processCsvToTxt(inputCsvPath, termsCsvPath, outputTxtPath) {
                     const license = parseLicense(row['License']);
                     const author = row['Author'] || 'No Author Available';
                     const dependencyName = row['Dependency'] || 'No Dependency Available';
-                    const termsFromCsv = row['Terms'] || ''; // Read the 'Terms' column from inputCsvPath
+                    const termsFromCsv = row['Terms'] || ''; //read the 'Terms' column from inputCsvPath
                     const finalTerms = termsFromCsv.trim() || licenseTerms[license] || 'No Terms Available';
 
                     //append the formatted string to the outputLines array
