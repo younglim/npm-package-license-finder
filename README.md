@@ -14,12 +14,27 @@ Counts of each license is generated.
 ```
 ...
 License information has been written to /Users/some-user/some-path/npm-package-license-finder/some-package-licenses.csv
-License	Counts:
-ISC	36
-MIT	60
-BlueOak-1.0.0	8
-BSD-2-Clause	1
-BSD-3-Clause	1
+License Counts:
+MIT     102
+Apache-2.0      52
+ISC     11
+BSD-3-Clause    3
+BSD-2-Clause    5
+...
+Total License: 848
+```
+## Sample Output CSV File
+```
+glob-parent,ISC,https://github.com/gulpjs/glob-parent#readme,https://registry.npmjs.org/glob-parent/-/glob-parent-6.0.2.tgz,Gulp Team <team@gulpjs.com> (https://gulpjs.com/),"The ISC License..."
+
+has-ansi,MIT,https://github.com/chalk/has-ansi#readme,https://registry.npmjs.org/has-ansi/-/has-ansi-2.0.0.tgz,authorname,"The MIT License (MIT)
+
+Copyright (c) ... <....@gmail.com> (.....s.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the ""Software""), to deal
+in the Software without restriction, including without limitation the rights..."
+...
 ```
 
 ## How to run license-formatting.js
@@ -33,13 +48,5 @@ node license-formatting.js generated-licenses.csv general-terms.csv licenses-out
 
 ```
 
-## Sample Output CSV File
-```
-Dependency,License,Homepage,Tarball URL
-node_modules/@isaacs/cliui,ISC,https://github.com/yargs/cliui#readme,https://registry.npmjs.org/@isaacs/cliui/-/cliui-8.0.2.tgz
-node_modules/@isaacs/fs-minipass,ISC,https://github.com/npm/fs-minipass#readme,https://registry.npmjs.org/@isaacs/fs-minipass/-/fs-minipass-4.0.1.tgz
-node_modules/@npmcli/agent,ISC,https://github.com/kamicane/agent,https://registry.npmjs.org/@npmcli/agent/-/agent-3.0.0.tgz
-...
-```
 
 

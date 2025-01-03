@@ -127,13 +127,34 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                 } catch (downloadError) {
                                     throw new Error(`Error downloading tarball for ${packageName}: ${downloadError.message}`);
                                 }
-
                                 //console.log(`Extracting tarball for package: ${packageName} to ${tarballDir}`);
                                 await tar.extract({
                                     file: tarballPath,
                                     cwd: tarballDir,
-                                    filter: (p) => p.includes('package/package.json'),
+                                    filter: (p) => p.includes('package/package.json') || p.toLowerCase().includes('package/license'),
                                 });
+
+                                const licensePaths = [ //Finding license text
+                                    path.join(tarballDir, 'package', 'LICENSE'),
+                                    path.join(tarballDir, 'package', 'LICENSE.txt'),
+                                    path.join(tarballDir, 'package', 'LICENSE.md'),
+                                    path.join(tarballDir, 'package', 'license'),
+                                    path.join(tarballDir, 'package', 'license.txt'),
+                                    path.join(tarballDir, 'package', 'license.md'),
+                                  ];
+                                  let licenseDataFound = false;
+                                  for (const licensePath of licensePaths) {
+                                    if (fs.existsSync(licensePath)) { 
+                                      const licenseData = fs.readFileSync(licensePath, 'utf8');
+                                      //console.log(`License content from ${licensePath}:\n${licenseData}`);
+                                      licenseText = licenseData;
+                                      licenseDataFound = true;
+                                      break;
+                                    }
+                                  }
+                                  if (!licenseDataFound) {
+                                    console.log('LICENSE file(s) not found in the extracted tarball');
+                                  }
 
                                 const packageJsonPath = path.join(tarballDir, 'package', 'package.json');
                                 if (fs.existsSync(packageJsonPath)) {
@@ -149,16 +170,13 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                      // Extract homepage information
                                     if (packageJsonData.homepage) {
                                         homepage = packageJsonData.homepage;
-                                        //console.log(`Homepage found in package.json for ${packageName}: ${homepage}`);
                                     }
 
                                     // Extract author information
                                     if (packageJsonData.author) {
-                                        author = packageJsonData.author.name || packageJsonData.author;
-                                        //console.log(`Author found in package.json under Author for ${packageName}: ${author}`);
+                                        author = packageJsonData.author.name || packageJsonData.author;  
                                     }else if (packageData._npmUser.name){
                                         author = packageData._npmUser.name;
-                                        //console.log(`Author found in package.json under _npmUser for ${packageName}: ${author}`);
                                     }
                                 }
 
@@ -176,17 +194,17 @@ fs.readFile(packageLockPath, 'utf8', async (err, data) => {
                                 }                         
                             }
                         }
-                        if (homepage.includes("https://github.com")) {
-                            const gitDIR = homepage.replace('https://github.com', '').replace('#readme', '');
-                            const licenseTextUrl = `https://raw.githubusercontent.com/${gitDIR}/refs/heads/main/LICENSE`;                              
-                            try {// The getting raw content of the LICENSE file
-                                const licenseFileResponse = await axios.get(licenseTextUrl);
-                                licenseText = licenseFileResponse.data;  
-                                //console.log(`--------License Text fetched from GitHub for ${gitDIR}:`);
-                            } catch (error) {
-                                //console.error(`------Error fetching license text from GitHub from ${licenseTextUrl}:`, error.message);
-                            }
-                        }
+                        // if (homepage.includes("https://github.com")) {
+                        //     const gitDIR = homepage.replace('https://github.com', '').replace('#readme', '');
+                        //     const licenseTextUrl = `https://raw.githubusercontent.com/${gitDIR}/refs/heads/main/LICENSE`;                              
+                        //     try {// The getting raw content of the LICENSE file
+                        //         const licenseFileResponse = await axios.get(licenseTextUrl);
+                        //         licenseText = licenseFileResponse.data;  
+                        //         //console.log(`--------License Text fetched from GitHub for ${gitDIR}:`);
+                        //     } catch (error) {
+                        //         //console.error(`------Error fetching license text from GitHub from ${licenseTextUrl}:`, error.message);
+                        //     }
+                        // }
 
                     } catch (apiError) {
                         if (apiError.statusCode === 404) {

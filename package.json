@@ -5,8 +5,9 @@
   "main": "license-finder.js",
   "type": "module",
   "scripts": {
-    "start": "node license-finder.js"
-  },
+    "start": "node license-finder.js",
+    "format": "node license-formatting.js output/outputl.csv general-terms.csv licenses-output.txt"
+    },
   "author": "younglim",
   "license": "MIT",
   "dependencies": {
